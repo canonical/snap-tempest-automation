@@ -79,8 +79,9 @@ def parse_manual_requirements(path):
                 # Requirement cannot handle comments
                 req = Requirement(line.split("#", maxsplit=1)[0])
                 manual_requirements.add(str(req))
-            except InvalidRequirement:
-                pass
+            except InvalidRequirement as err:
+                msg = f"ERROR: cannot parse manual requirements\n{err}"
+                sys.exit(msg)
 
     return manual_requirements
 
