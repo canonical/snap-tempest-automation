@@ -75,13 +75,16 @@ def parse_manual_requirements(path):
 
     with open(manual_requirements_path, encoding="utf-8") as req_file:
         for line in req_file:
-            try:
-                # Requirement cannot handle comments
-                req = Requirement(line.split("#", maxsplit=1)[0])
-                manual_requirements.add(str(req))
-            except InvalidRequirement as err:
-                msg = f"ERROR: cannot parse manual requirements\n{err}"
-                sys.exit(msg)
+            # Drop comment lines
+            if not line.startswith("#"):
+                # Requirement cannot handle in-line comments
+                package = line.split("#", maxsplit=1)[0]
+                try:
+                    req = Requirement(package)
+                    manual_requirements.add(str(req))
+                except InvalidRequirement as err:
+                    msg = f"ERROR: cannot parse manual requirements\n{err}"
+                    sys.exit(msg)
 
     return manual_requirements
 
