@@ -218,7 +218,7 @@ def main(args):
     clone_releases_repository(args.reuse)
     excluded_plugins = parse_excluded_plugins(Path(args.excluded_plugins))
     snapcraft_yaml_path = Path(args.input)
-    snapcraft_yaml = yaml.load(snapcraft_yaml_path.read_text())
+    snapcraft_yaml = yaml.load(snapcraft_yaml_path.read_text(encoding="UTF-8"))
 
     snapcraft_yaml["parts"]["tempest"]["source-tag"] = get_latest_tempest_revision(args.release)
 
