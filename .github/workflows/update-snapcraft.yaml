@@ -70,7 +70,7 @@ jobs:
         ref: stable/${{ inputs.openstack-release }}  # checkout to stable branch for creating PR to this branch
         repository: ${{ env.REPO_OWNER }}/${{ env.SNAP_REPO_PATH }}
     - name: Download snapcraft.yaml from github artifact  # download changes to stable branch
-      uses: actions/download-artifact@v4.0.0  # due to https://github.com/actions/download-artifact/issues/328
+      uses: actions/download-artifact@v4.1.3  # due to https://github.com/actions/download-artifact/issues/328
       with:
         name: updated_snapcraft_yaml_${{ inputs.openstack-release }}
         path: ./snap
