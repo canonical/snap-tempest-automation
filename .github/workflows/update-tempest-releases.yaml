@@ -9,7 +9,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        release: [caracal, bobcat, antelope, zed, yoga, ussuri]
+        release: [epoxy, dalmatian, caracal, bobcat, antelope, zed, yoga, ussuri]
     uses: ./.github/workflows/update-snapcraft.yaml
     with:
       openstack-release: ${{ matrix.release }}
