@@ -25,6 +25,7 @@ yaml = YAML(typ="rt")
 
 RELEASES_REPO_URL = "https://opendev.org/openstack/releases.git"
 RELEASES_REPO_PATH = Path(tempfile.gettempdir()) / "releases"
+SERIES_STATUS_PATH = RELEASES_REPO_PATH / "data" / "series_status.yaml"
 OPENDEV_BASE_URL = "https://opendev.org"
 OPENDEV_GIT_BASE_URL = "git+" + OPENDEV_BASE_URL
 OPENSTACK_TAGS_RSS_FEED_FMT = OPENDEV_BASE_URL + "/{project}/tags.rss"
@@ -143,7 +144,21 @@ def parse_args():
     return parser.parse_args()
 
 
-def get_latest_tag_from_feed(url, release):
+def get_end_of_support_tags(release):
+    """Return the tags that may mark the end of support for an OpenStack release.
+
+    Upstream names these tags after the release codename up to zed (e.g. zed-last)
+    and after the release number from 2023.1 onwards (e.g. 2024.1-last for caracal),
+    so both forms are valid.
+    """
+    tags = {f"{release}-last"}
+    for series in yaml.load(SERIES_STATUS_PATH.read_text(encoding="utf-8")):
+        if series["name"] == release and "release-id" in series:
+            tags.add(f"{series['release-id']}-last")
+    return tags
+
+
+def get_latest_tag_from_feed(url, end_of_support_tags):
     """Return the latest compatible tag for a given OpenStack release and component.
 
     Every tempest or tempest plugin version is represented by either a standard
@@ -151,7 +166,7 @@ def get_latest_tag_from_feed(url, release):
     version. See
     https://docs.openstack.org/tempest/latest/tempest_and_plugins_compatible_version_policy.html
 
-    We want to return f"{release}-last" if available, and the most recent
+    We want to return the end of support tag if available, and the most recent
     semver tag otherwise.
     """
     feed = feedparser.parse(url)
@@ -165,19 +180,19 @@ def get_latest_tag_from_feed(url, release):
         except version.InvalidVersion:
             # Ignore non-semver tags, unless we've found the end of support
             # version
-            if tag == f"{release}-last":
+            if tag in end_of_support_tags:
                 return tag
 
     return str(max(versions_set))
 
 
-def get_latest_tempest_revision(release):
+def get_latest_tempest_revision(end_of_support_tags):
     """Return the requirements entry for the latest tempest revision."""
     feed_url = OPENSTACK_TAGS_RSS_FEED_FMT.format(project="openstack/tempest")
-    return get_latest_tag_from_feed(feed_url, release)
+    return get_latest_tag_from_feed(feed_url, end_of_support_tags)
 
 
-def get_latest_plugin_requirements(release, excluded_plugins):
+def get_latest_plugin_requirements(release, excluded_plugins, end_of_support_tags):
     """Return list of requirements entries for the latest tempest plugin revisions."""
     result = []
 
@@ -188,7 +203,7 @@ def get_latest_plugin_requirements(release, excluded_plugins):
             plugin_name = project.rsplit("/").pop()
             if plugin_name not in excluded_plugins:
                 feed_url = OPENSTACK_TAGS_RSS_FEED_FMT.format(project=project)
-                tag = get_latest_tag_from_feed(feed_url, release)
+                tag = get_latest_tag_from_feed(feed_url, end_of_support_tags)
                 result.append(OPENSTACK_REPO_URL_FMT.format(project=project, ref=tag))
 
     return sorted(result)
@@ -228,14 +243,17 @@ def main(args):
     """Entry point to the application."""
     clone_releases_repository(args.reuse)
     excluded_plugins = parse_excluded_plugins(Path(args.excluded_plugins))
+    end_of_support_tags = get_end_of_support_tags(args.release)
     snapcraft_yaml_path = Path(args.input)
     snapcraft_yaml = yaml.load(snapcraft_yaml_path.read_text(encoding="UTF-8"))
 
-    snapcraft_yaml["parts"]["tempest"]["source-tag"] = get_latest_tempest_revision(args.release)
+    snapcraft_yaml["parts"]["tempest"]["source-tag"] = get_latest_tempest_revision(
+        end_of_support_tags
+    )
 
     snapcraft_yaml["parts"]["tempest"]["python-packages"] = [
         *parse_manual_requirements(Path(args.manual_requirements)),
-        *get_latest_plugin_requirements(args.release, excluded_plugins),
+        *get_latest_plugin_requirements(args.release, excluded_plugins, end_of_support_tags),
         get_latest_tempestconf_requirements(),
     ]
 

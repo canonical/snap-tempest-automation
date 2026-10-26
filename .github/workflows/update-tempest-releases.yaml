@@ -9,7 +9,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        release: [gazpacho, epoxy, dalmatian, caracal, bobcat, antelope, zed, yoga, ussuri]
+        # bobcat should be pinned manually on stable/bobcat: upstream hasn't tagged bobcat-last
+        # or 2023.2-last, so automation would fall back to the latest tempest, which no longer
+        # supports it.
+        release: [gazpacho, epoxy, dalmatian, caracal, antelope, zed, yoga, ussuri]
     uses: ./.github/workflows/update-snapcraft.yaml
     with:
       openstack-release: ${{ matrix.release }}
