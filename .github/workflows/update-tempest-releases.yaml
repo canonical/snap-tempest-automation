@@ -9,7 +9,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        release: [gazpacho, epoxy, dalmatian, caracal, bobcat, antelope, zed, yoga, ussuri]
+        # bobcat and dalmatian should be pinned manually on their stable/ branches: upstream recorded
+        # 2023.2-last and 2024.2-last in openstack/releases but hasn't pushed the git tags, so
+        # automation would fall back to the latest tempest, which no longer supports them.
+        # Issue: https://github.com/canonical/snap-tempest-automation/issues/39
+        release: [gazpacho, epoxy, caracal, antelope, zed, yoga, ussuri]
     uses: ./.github/workflows/update-snapcraft.yaml
     with:
       openstack-release: ${{ matrix.release }}
